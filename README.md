@@ -5,6 +5,10 @@
 
 <p align="center"><img src="https://img.shields.io/badge/license-mit-blue?style=for-the-badge&logo=none" alt="license" /></p>
 
+## Disclaimer
+
+The code on this repository has **not** been audited. We don't recommend it using in production without a full security audit. Use it at your own risk!.
+
 ## Protocol
 
 This contract locks an NFT and mints a number of tokens representing fractions of it. To get the NFT back, the fraction tokens are burned.
