@@ -21,7 +21,7 @@ The protocol has three steps:
 
 ## Testing On Plutus Playground
 
-The `Fracada.hs` content can be pasted on the Plutus Playground and executed directly in the simulator ( tested and compiled against commit 2f11c28bd of Plutus ).
+The `Fracada.hs` content can be pasted on the Plutus Playground and executed directly in the simulator ( tested and compiled against commit [2f11c28bd of Plutus](https://github.com/input-output-hk/plutus/commit/2f11c28bd8f6d630daab582255e16d8408075bd7) ).
 
 ## Building
 
