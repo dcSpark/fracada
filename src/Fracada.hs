@@ -68,7 +68,8 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions, owne
   in
     if (nftIsLocked) then
       let
-        [(_, oldDatum),(_,newDatum)] =  txInfoData txInfo
+        (_, ownDatumHash) = ownHashes ctx
+        [(_,newDatum)] =  filter (\(h,d) -> h /= ownDatumHash) $ txInfoData txInfo
         Just FractionNFTDatum{totalFractions=newTotalFractions} = datumToData newDatum
 
         tokensMinted = forgedTokens == totalFractions
@@ -82,7 +83,7 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions, owne
       traceIfFalse "Owner not the same" (owner == sig)
     else
       let
-        tokensBurnt = forgedTokens == negate totalFractions
+        tokensBurnt = forgedTokens == negate totalFractions && forgedTokens /= 0
         nftIsPaidToSigner = assetClassValueOf (Validation.valuePaidTo txInfo sig ) nftAsset == 1
       in
         traceIfFalse "NFT not paid to signer" nftIsPaidToSigner &&
