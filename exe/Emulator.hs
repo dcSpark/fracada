@@ -9,29 +9,66 @@
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE NumericUnderscores    #-}
 
-
-import           Prelude                (IO)
-import           Control.Monad          hiding (fmap)
+import           Prelude                (IO, show, Show (..))
+-- import           Control.Monad          hiding (fmap)
 import           PlutusTx.Prelude       hiding (Semigroup(..), unless)
 import           Ledger.Value           as Value
 import           Plutus.Trace.Emulator  as Emulator
 import           Wallet.Emulator.Wallet
+-- import           Control.Monad.Freer.Extras as Extras
 import           Fracada
+-- import           Plutus.Contract        as Contract
+import           Ledger.Ada             as Ada
+import qualified Data.Map                   as Map
+-- import           Control.Lens
+import           Control.Monad              hiding (fmap)
+import           Control.Monad.Freer.Extras as Extras
+import           Data.Default               (Default (..))
+-- import qualified Data.Map                   as Map
+-- import           Data.Monoid                (Last (..))
+-- import           Ledger
+-- import           Ledger.Value
+-- import           Ledger.Ada                 as Ada
+-- import           Plutus.Contract.Test
+-- import           Plutus.Trace.Emulator      as Emulator
+import           PlutusTx.Prelude
+-- import           Test.Tasty
+
+nftCurrency :: CurrencySymbol
+nftCurrency = "66"
+
+nftName :: TokenName
+nftName = "NFT"
+
+nft :: AssetClass
+nft = AssetClass (nftCurrency, nftName)
 
 
 main :: IO ()
-main = runEmulatorTraceIO $ do
+main = runEmulatorTraceIO' def emCfg scenario1
+
+emCfg :: EmulatorConfig
+emCfg = EmulatorConfig (Left $ Map.fromList [(Wallet w, v) | w <- [1 .. 1]]) def def
+    where
+        v = Ada.lovelaceValueOf 1000_000_000 <> assetClassValue nft 1
+
+scenario1 :: EmulatorTrace ()
+scenario1 = do
     h1 <- activateContractWallet (Wallet 1) endpoints
-    h2 <- activateContractWallet (Wallet 2) endpoints
-    let 
-        nft = AssetClass (currencySymbol "66", tokenName "NFT")
+    void $ Emulator.waitNSlots 1
+    let
         toFraction = ToFraction
             { nftAsset = nft
             , fractions = 10
-            , fractionTokenName = tokenName "Frac" 
+            , fractionTokenName = tokenName "Frac"
             }
     callEndpoint @"1-lockNFT" h1 nft
+    void $ Emulator.waitNSlots 1
+
     callEndpoint @"2-fractionNFT" h1 toFraction
-    callEndpoint @"3-returnNFT" h2 nft
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"3-returnNFT" h1 nft
     void $ Emulator.waitNSlots 1

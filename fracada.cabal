@@ -68,6 +68,9 @@ executable           Emulator
                     , plutus-tx-plugin
                     , text
                     , playground-common
+                    , lens
+                    , data-default
+                    , tasty
   default-language:   Haskell2010
   default-extensions: DataKinds
                       DeriveAnyClass
