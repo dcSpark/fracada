@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE LambdaCase          #-}
 
 module Fracada where
 
@@ -29,12 +30,10 @@ import           Ledger.Value           as Value
 import           Playground.Contract    (printJson, printSchemas, ensureKnownCurrencies, stage, ToSchema, NonEmpty(..) )
 import           Playground.TH          (mkKnownCurrencies, mkSchemaDefinitions, ensureKnownCurrencies)
 import           Playground.Types       (KnownCurrency (..))
-import           Plutus.Trace.Emulator  as Emulator
 import           Prelude                (Semigroup (..))
 import           Text.Printf            (printf)
 import           GHC.Generics         (Generic)
 import           Data.Aeson           (ToJSON, FromJSON)
-import           Wallet.Emulator.Wallet
 
 
 data FractionNFTDatum = FractionNFTDatum {
@@ -63,7 +62,7 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions, owne
       txInfo = scriptContextTxInfo ctx
       -- extract signer of this transaction, assume is only one
       [sig] = txInfoSignatories txInfo
-      forgedTokens = assetClassValueOf (txInfoForge txInfo) tokensClass
+      forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
       nftIsLocked = assetClassValueOf ( Validation.valueLockedBy txInfo (Validation.ownHash ctx)) nftAsset == 1
   in
     if (nftIsLocked) then
@@ -113,7 +112,7 @@ mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> () 
 mintFractionTokens fractionNFTScript asset@( AssetClass (nftCurrency, nftToken)) numberOfFractions fractionTokenName _ ctx =
   let
     info = scriptContextTxInfo ctx
-    mintedAmount = case flattenValue (txInfoForge info) of
+    mintedAmount = case flattenValue (txInfoMint info) of
         [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt
         _                                                           -> 0
   in
@@ -163,10 +162,23 @@ type FracNFTSchema =
     .\/ Endpoint "2-fractionNFT" ToFraction
     .\/ Endpoint "3-returnNFT" AssetClass
 
-extractData :: (PlutusTx.FromData a) => TxOutTx -> Maybe a
-extractData txOut = do
-                        datum <- txOutTxDatum txOut
-                        datumToData datum
+
+
+extractData :: (PlutusTx.FromData a) => ChainIndexTxOut -> Contract w s Text a
+extractData o =
+  case o of
+      PublicKeyChainIndexTxOut {} ->
+        throwError "no datum for a txout of a public key address"
+      ScriptChainIndexTxOut { _ciTxOutDatum } -> do
+        (Datum e) <- either getDatum pure _ciTxOutDatum
+        maybe (throwError "datum hash wrong type")
+              pure
+              (PlutusTx.fromBuiltinData e)
+  where
+    getDatum :: DatumHash -> Contract w s Text Datum
+    getDatum dh =
+      datumFromHash dh >>= \case Nothing -> throwError "datum not found"
+                                 Just d  -> pure d
 
 lockNFT :: AssetClass -> Contract w FracNFTSchema Text ()
 lockNFT nftAsset = do
@@ -189,13 +201,10 @@ fractionNFT ToFraction {nftAsset, fractions, fractionTokenName} = do
   -- pay nft to contract
   -- pay minted tokens back to signer
     pkh    <- pubKeyHash <$> Contract.ownPubKey
-    utxos <- utxoAt $ fractionNftValidatorAddress nftAsset
-    let
-      -- declare the NFT value
-      nftValue = assetClassValue nftAsset 1
+    utxos <- utxosAt $ fractionNftValidatorAddress nftAsset
+    let  
       -- find the UTxO that has the NFT we're looking for
-      Just utxo@(oref, _) = find (\(_,v) -> nftValue == txOutValue (txOutTxOut v)) $ Map.toList utxos
-
+      Just utxo@(oref, _) = find (\(_,v) -> 1 == assetClassValueOf (_ciTxOutValue v) nftAsset ) $ Map.toList utxos
       --find the minting script instance
       mintingScript = mintFractionTokensPolicy nftAsset fractions fractionTokenName
 
@@ -229,15 +238,16 @@ returnNFT nftAsset = do
   -- pay nft to signer
   -- burn tokens
     pk    <- Contract.ownPubKey
-    utxos <- utxoAt $ fractionNftValidatorAddress nftAsset
+    utxos <- utxosAt $ fractionNftValidatorAddress nftAsset
     let
       -- declare the NFT value
       valueToWallet = assetClassValue nftAsset 1
       -- find the UTxO that has the NFT we're looking for
-      utxos' = Map.filter (\v -> valueToWallet == txOutValue (txOutTxOut v)) utxos
+      utxos' = Map.filter (\v -> 1 == assetClassValueOf (_ciTxOutValue v) nftAsset ) utxos
       (nftRef,nftTx) = head $ Map.toList utxos'
       -- use the auxiliary extractData function to get the datum content
-      Just FractionNFTDatum {tokensClass, totalFractions } = extractData nftTx
+    FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
+    let
       -- declare the fractional tokens to burn
       (_, fractionTokenName) = unAssetClass tokensClass
       tokensCurrency =  curSymbol nftAsset totalFractions fractionTokenName
