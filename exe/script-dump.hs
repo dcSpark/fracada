@@ -10,13 +10,21 @@ import           Codec.Serialise
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api as Plutus
 
-import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Short as SBS
 import qualified Data.ByteString.Lazy as LB
 
-import Fracada
+import           Fracada
 
 import          Plutus.V1.Ledger.Value
+import Data.String                         (IsString (..))
+
+-- test data
+-- nftCurrencySymbol = fromString  "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7" 
+-- nftTokenName =  "" 
+-- fractionTokenName =  "FracadaToken" 
+-- numberOfFractions = 10 :: Integer 
+-- nft = AssetClass (nftCurrencySymbol, nftTokenName)
+-- fractionToken = Plutus.TokenName fractionTokenName
 
 main :: IO ()
 main = do
@@ -29,14 +37,15 @@ main = do
   else 
     do 
       let       
-        nftCurrencySymbol = BS.pack $ args!!0
-        nftTokenName = BS.pack $ args!!1
-        fractionTokenName = BS.pack $ args!!2
-        numberOfFractions = (read $ args!!3 )::Integer
+        [nftSymbol, nftTokenName', fractionTokenName', numberOfFractions'] = args
+        nftCurrencySymbol = fromString nftSymbol
+        nftTokenName = fromString nftTokenName' 
+        fractionTokenName = fromString fractionTokenName'
+        numberOfFractions = read numberOfFractions'
         validatorname = "validator.plutus"
         mintingname = "minting.plutus"
         scriptnum = 42
-        nft = AssetClass (CurrencySymbol ( nftCurrencySymbol), TokenName nftTokenName)
+        nft = AssetClass (CurrencySymbol ( nftCurrencySymbol), nftTokenName)
         fractionToken = Plutus.TokenName fractionTokenName
         appliedValidatorScript =fractionValidatorScript nft
 
