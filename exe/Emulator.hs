@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE NumericUnderscores    #-}
 
-import           Prelude                (IO, show, Show (..), (<>))
+import           Prelude                (IO,  (<>))
 import           PlutusTx.Prelude       hiding (Semigroup(..), unless)
 import           Ledger.Value           as Value
 import           Plutus.Trace.Emulator  as Emulator
@@ -20,7 +20,6 @@ import           Fracada
 import           Ledger.Ada             as Ada
 import qualified Data.Map                   as Map
 import           Control.Monad              hiding (fmap)
-import           Control.Monad.Freer.Extras as Extras
 import           Data.Default               (Default (..))
 
 nftCurrency :: CurrencySymbol
@@ -53,13 +52,11 @@ scenario1 = do
             , fractions = 10
             , fractionTokenName = tokenName "Frac"
             }
-    callEndpoint @"1-lockNFT" h1 nft
+
+    callEndpoint @"1-fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"2-fractionNFT" h1 toFraction
-    void $ Emulator.waitNSlots 1
-
-    callEndpoint @"3-returnNFT" h1 nft
+    callEndpoint @"2-returnNFT" h1 nft
     void $ Emulator.waitNSlots 1
 
 scenario2 :: EmulatorTrace ()
@@ -74,8 +71,8 @@ scenario2 = do
             , fractionTokenName = tokenName "Frac"
             }
     -- callEndpoint @"1-lockNFT" h1 nft
-    callEndpoint @"2-fractionNFT" h1 toFraction
+    callEndpoint @"1-fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"3-returnNFT" h2 nft
+    callEndpoint @"2-returnNFT" h2 nft
     void $ Emulator.waitNSlots 1
