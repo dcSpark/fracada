@@ -24,23 +24,21 @@ main :: IO ()
 main = do
   args <- getArgs
   let nargs = length args
-  if nargs /= 4 then
+  if nargs /= 3 then
     do
       putStrLn $ "Usage:"
-      putStrLn $ "datum-dump <NFT currency symbol> <NFT token name> <number of fractions> <owner address>"
+      putStrLn $ "datum-dump <NFT currency symbol> <NFT token name> <number of fractions>"
   else 
     do 
       let       
-        [nftSymbol, nftTokenName', numberOfFractions', ownerAddress] = args
+        [nftSymbol, nftTokenName', numberOfFractions'] = args
         nftCurrencySymbol = fromString nftSymbol
         nftTokenName = fromString nftTokenName' 
         numberOfFractions = (read numberOfFractions' )::Integer
   
         nft = AssetClass (nftCurrencySymbol, nftTokenName)
-        pk :: PubKey
-        pk = PubKey $ fromBytes $ B16.encode $ fromString ownerAddress
-
-        datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions, owner = pubKeyHash pk}
+  
+        datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions}
         dHash = datumHash $ Datum $ toBuiltinData datum
         datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum
         encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode) 
