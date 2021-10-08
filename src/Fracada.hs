@@ -68,16 +68,14 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions, owne
     if (nftIsLocked) then
       let
         (_, ownDatumHash) = ownHashes ctx
-        [(_,newDatum)] =  filter (\(h,d) -> h /= ownDatumHash) $ txInfoData txInfo
-        Just FractionNFTDatum{totalFractions=newTotalFractions} = datumToData newDatum
-
+        expectedNewDatumHash = datumHash $ Datum $ toBuiltinData $ FractionNFTDatum{tokensClass,totalFractions=forgedTokens, owner}
+        [_] = filter (\(h,_) -> h == expectedNewDatumHash) $ txInfoData txInfo 
         tokensMinted = forgedTokens == totalFractions
       in
       -- check fractions input  = 0 output = n
       -- owner is same
       -- tokens minted
       traceIfFalse "NFT already fractioned" (totalFractions == 0) &&
-      traceIfFalse "NFT not fractioned" (newTotalFractions > 0) &&
       traceIfFalse "Tokens not minted" tokensMinted &&
       traceIfFalse "Owner not the same" (owner == sig)
     else

@@ -77,5 +77,5 @@ scenario2 = do
     callEndpoint @"2-fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"3-returnNFT" h1 nft
+    callEndpoint @"3-returnNFT" h2 nft
     void $ Emulator.waitNSlots 1
