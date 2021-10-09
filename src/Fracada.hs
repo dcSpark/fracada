@@ -91,7 +91,7 @@ fractionNftValidatorAddress = Ledger.scriptAddress . fractionValidatorScript
 
 
 {-# INLINABLE mintFractionTokens #-}
-mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> () -> ScriptContext -> Bool
+mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> BuiltinData -> ScriptContext -> Bool
 mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _ ctx =
 
   let

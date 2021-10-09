@@ -13,10 +13,15 @@ import qualified Plutus.V1.Ledger.Api as Plutus
 import qualified Data.ByteString.Short as SBS
 import qualified Data.ByteString.Lazy as LB
 
+import           Ledger                     (datumHash)
+
+
 import           Fracada
 
 import          Plutus.V1.Ledger.Value
+import           Plutus.V1.Ledger.Api
 import Data.String                         (IsString (..))
+import           Data.Aeson
 
 -- test data
 -- nftCurrencySymbol = fromString  "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7" 
@@ -45,7 +50,7 @@ main = do
         validatorname = "validator.plutus"
         mintingname = "minting.plutus"
         scriptnum = 42
-        nft = AssetClass (CurrencySymbol ( nftCurrencySymbol), nftTokenName)
+        nft = AssetClass (nftCurrencySymbol, nftTokenName)
         fractionToken = Plutus.TokenName fractionTokenName
         appliedValidatorScript =fractionValidatorScript nft
 
@@ -59,11 +64,23 @@ main = do
         mintingScriptShortBs = SBS.toShort . LB.toStrict $ mintingAsCbor
         mintingScript = PlutusScriptSerialised mintingScriptShortBs
 
+        datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions}
+        dHash = datumHash $ Datum $ toBuiltinData datum
+        datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum
+        encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode) 
+
       putStrLn $ "Writing output to: " ++ validatorname
       writePlutusScript scriptnum validatorname validatorScript validatorShortBs
 
+      putStrLn $ "validator hash " ++ (show $ fractionNftValidatorHash nft)
+
       putStrLn $ "Writing output to: " ++ mintingname
-      writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
+      writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs      
+
+      putStrLn $ "currency id " ++ (show $ curSymbol nft numberOfFractions fractionToken)        
+
+      putStrLn $ "encoded datum: " ++ show encoded
+      putStrLn $ "datum hash: " ++ show dHash
 
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
