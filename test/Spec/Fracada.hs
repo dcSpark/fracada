@@ -8,27 +8,14 @@ module Spec.Fracada (
     , successFullFractionalizationTrace
     ) where
 
--- import           Control.Monad              (void)
 import           Control.Monad              hiding (fmap)
-
--- import qualified Data.Map                   as Map
--- import           Data.Default               (Default (..))
-
 import qualified Ledger
--- import qualified Ledger.Ada                 as Ada
 import           Ledger.Value               as Value
--- import           Plutus.Contract
 import           Plutus.Contract.Test
-
--- import           Fracada                    (FractionNFTDatum)
-import qualified Fracada
-
--- import           Plutus.Trace.Emulator      (EmulatorTrace, EmulatorConfig)
 import qualified Plutus.Trace.Emulator      as Trace
-
 import           Test.Tasty
 
-
+import qualified Fracada
 
 -- Contracts' parameters
 
@@ -56,7 +43,7 @@ useCaseTests =
         .&&. endpointAvailable @"2-returnNFT" contract (Trace.walletInstanceTag w2)
         ) $ void (Trace.activateContractWallet w1 contract)
         
-        , checkPredicate "Can lock NFT and mint fractionalize tokens"
+        , checkPredicate "Can lock NFT and mint fractional tokens"
         assertNoFailedTransactions
         successFullFractionalizationTrace
         
