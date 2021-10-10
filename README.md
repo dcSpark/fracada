@@ -29,13 +29,16 @@ To build the project execute `cabal build` at the project root.
 (NOTE: To build, the easiest way is for now, to clone [Plutus](https://github.com/input-output-hk/plutus) do `nix-shell` on the root of it and then `cd` to this repo)
 
 To build:
-`cabal build`
+``` bash
+$ cabal configure --enable-tests --enable-executable-dynamic -f -external-libsodium-vrf
+$ cabal build
+```
 
 ## Testing
 
-To run use-case test extecute the following command at the project root.
+To run use-case test execute the following commands at the project root.
 ``` bash
-$ cabal run -- fracada-test
+$ cabal run -- fracada-test # or cabal test
 Up to date
 use cases
   fracada
@@ -49,7 +52,12 @@ All 2 tests passed (0.14s)
 
 Dumping transaction for debug purpose ran the following command at the project root:
 
-`cabal run fracada-scripts --  ./tmp transactions -p scripts/protocol-parameters.json`
+``` bash
+$ cabal run fracada-scripts --  ./tmp transactions -p scripts/protocol-parameters.json
+...
+Writing transactions to: ./tmp
+Writing partial transaction JSON: ./tmp/fracada-success-1.json
+```
 
 ## Deployable Scripts
 

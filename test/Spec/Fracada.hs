@@ -19,8 +19,9 @@ import qualified Fracada
 
 -- Contracts' parameters
 
+-- for EmulatorTrace it must be a 28-byte length ByteString
 nftSymbol :: Ledger.CurrencySymbol
-nftSymbol = currencySymbol "f"
+nftSymbol = currencySymbol "0123456789012345678901234567"
 
 nftName :: Ledger.TokenName
 nftName = TokenName "fractionNFT"
