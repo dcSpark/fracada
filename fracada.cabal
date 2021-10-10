@@ -183,3 +183,90 @@ executable           datum-dump
                       ScopedTypeVariables
                       StandaloneKindSignatures
   ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+
+executable           fracada-scripts
+  main-is:           Main.hs
+  hs-source-dirs:    scripts, test
+
+  other-modules:     Spec.Fracada
+  ghc-options:       -Wall -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -Widentities -rtsopts -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  build-depends:     base
+                    , cardano-api
+                    , fracada
+                    , optparse-applicative
+                    , plutus-tx
+                    , plutus-contract
+                    , plutus-ledger
+                    , base
+                    , bytestring
+                    , cardano-crypto-class
+                    , containers
+                    , data-default
+                    , freer-extras
+                    , prettyprinter
+                    , tasty
+                    , tasty-hunit
+                    , tasty-hedgehog
+                    , tasty-golden
+                    , tasty-quickcheck
+                    , text
+                    , lens
+                    , mtl
+                    , QuickCheck
+                    , freer-simple
+                    , foldl
+                    , streaming
+  default-language:   Haskell2010
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+
+test-suite          fracada-test
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test, exe
+  other-modules:    Spec.Fracada
+  default-language: Haskell2010
+  ghc-options:      -Wall -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -Widentities -rtsopts -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  build-depends:    base
+                  , fracada
+                  , plutus-tx
+                  , plutus-contract
+                  , plutus-ledger
+                  , bytestring
+                  , cardano-crypto-class
+                  , containers
+                  , data-default
+                  , freer-extras
+                  , prettyprinter
+                  , tasty
+                  , tasty-hunit
+                  , tasty-hedgehog
+                  , tasty-golden
+                  , tasty-quickcheck
+                  , text
+                  , lens
+                  , mtl
+                  , QuickCheck
+                  , freer-simple
+                  , foldl
+                  , streaming
+if !(impl(ghcjs) || os(ghcjs))
+  build-depends: plutus-tx-plugin

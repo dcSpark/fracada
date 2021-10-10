@@ -31,6 +31,26 @@ To build the project execute `cabal build` at the project root.
 To build:
 `cabal build`
 
+## Testing
+
+To run use-case test extecute the following command at the project root.
+``` bash
+$ cabal run -- fracada-test
+Up to date
+use cases
+  fracada
+    Expose '1-fractionNFT' and '2-returnNFT' endpoints: OK (0.12s)
+    Can lock NFT and mint fractionalize tokens:         OK
+
+All 2 tests passed (0.14s)
+```
+
+## Dumping Transactions
+
+Dumping transaction for debug purpose ran the following command at the project root:
+
+`cabal run fracada-scripts --  ./tmp transactions -p scripts/protocol-parameters.json`
+
 ## Deployable Scripts
 
 To generate the scripts to deploy on-chain simply run:
