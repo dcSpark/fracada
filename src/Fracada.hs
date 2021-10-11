@@ -206,9 +206,12 @@ returnNFT nftAsset = do
     -- assuming that all the fraction tokens are in the owner's `ownPubkey` address. For tracing it is good enough,
     -- though for real-use-cases it is more nuanced, as the owner can have them on different
     -- UTxOs.
-    fracTokenUtxos <- utxosAt (Ledger.pubKeyAddress pk)
+    futxos <- utxosAt (Ledger.pubKeyAddress pk)
     FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
     let
+      tokensAsset = AssetClass (tokensCurrency, fractionTokenName) 
+      fracTokenUtxos = Map.filter (\v -> assetClassValueOf (_ciTxOutValue v) tokensAsset > 0  ) futxos
+
       -- declare the fractional tokens to burn
       (_, fractionTokenName) = unAssetClass tokensClass
       tokensCurrency =  curSymbol nftAsset totalFractions fractionTokenName
