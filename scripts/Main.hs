@@ -54,7 +54,7 @@ progParser =
         (p <**> helper)
         (fullDesc
         <> progDesc "Run a number of emulator traces and write all validator scripts and/or partial transactions to SCRIPT_PATH"
-        <> header "plutus-use-cases-scripts - extract validators and partial transactions from emulator traces"
+        <> header "fracada-scripts - extract validators and partial transactions from emulator traces"
         )
 
 main :: IO ()

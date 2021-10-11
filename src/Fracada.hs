@@ -203,6 +203,10 @@ returnNFT nftAsset = do
       utxos' = Map.filter (\v -> 1 == assetClassValueOf (_ciTxOutValue v) nftAsset ) utxos
       (nftRef,nftTx) = head $ Map.toList utxos'
       -- use the auxiliary extractData function to get the datum content
+    -- assuming that all the fraction tokens are in the owner's `ownPubkey` address. For tracing it is good enough,
+    -- though for real-use-cases it is more nuanced, as the owner can have them on different
+    -- UTxOs.
+    futxos <- utxosAt (Ledger.pubKeyAddress pk)
     FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
     let
       -- declare the fractional tokens to burn
@@ -214,7 +218,9 @@ returnNFT nftAsset = do
       validator = fractionValidatorScript nftAsset
       lookups = Constraints.mintingPolicy (mintFractionTokensPolicy nftAsset totalFractions fractionTokenName)  <>
                 Constraints.otherScript validator <>
-                Constraints.unspentOutputs utxos'
+                Constraints.unspentOutputs utxos' <>
+                Constraints.unspentOutputs futxos <>
+                Constraints.ownPubKeyHash (pubKeyHash pk)
 
       tx      = Constraints.mustMintValue tokensToBurn <>
                 Constraints.mustSpendScriptOutput nftRef ( Redeemer $ toBuiltinData () ) <>
