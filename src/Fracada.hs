@@ -56,17 +56,17 @@ datumToData datum = fromBuiltinData (getDatum datum)
 
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: AssetClass -> FractionNFTDatum -> BuiltinData -> ScriptContext -> Bool
-fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx = 
+fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx =
   let
       txInfo = scriptContextTxInfo ctx
-        
+
       -- make sure the asset is spent
-      assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset >= 1  
+      assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
 
       forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
-      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0 
+      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
   in
-      traceIfFalse "NFT not spent" assetIsReturned &&
+      traceIfFalse "NFT not returned" assetIsReturned &&
       traceIfFalse "Tokens not burn" tokensBurnt
 
 
@@ -94,24 +94,24 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
   let
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
-        [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt 
+        [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt
         _                                                           -> 0
   in
     if mintedAmount > 0 then
-      let 
-        lockedByNFTfractionScript = valueLockedBy info fractionNFTScript 
-        assetIsPaid = assetClassValueOf lockedByNFTfractionScript asset == 1 
+      let
+        lockedByNFTfractionScript = valueLockedBy info fractionNFTScript
+        assetIsLocked = assetClassValueOf lockedByNFTfractionScript asset == 1
       in
-        traceIfFalse "Asset not paid" assetIsPaid           &&
+        traceIfFalse "Asset not locked" assetIsLocked           &&
         traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
-    else if mintedAmount < 0 then 
+    else if mintedAmount < 0 then
       let
         -- make sure the asset is spent
-        assetIsReturned = assetClassValueOf (valueProduced info) asset >= 1  
+        assetIsReturned = assetClassValueOf (valueProduced info) asset > 0
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
         traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
-    else 
+    else
       False
 
 
@@ -168,25 +168,25 @@ fractionNFT ToFraction {nftAsset, fractions, fractionTokenName} = do
       --find the minting script instance
       mintingScript = mintFractionTokensPolicy nftAsset fractions fractionTokenName
 
-      -- define the value to mint (amount of tokens) and be paid to signer  
-      currency = scriptCurrencySymbol mintingScript  
+      -- define the value to mint (amount of tokens) and be paid to signer
+      currency = scriptCurrencySymbol mintingScript
       tokensToMint =  Value.singleton currency fractionTokenName fractions
       payBackTokens = mustPayToPubKey (pubKeyHash pk) tokensToMint
-      -- value of NFT 
-      valueToScript = assetClassValue nftAsset 1 
+      -- value of NFT
+      valueToScript = assetClassValue nftAsset 1
       -- keep the minted amount and asset class in the datum
       datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= assetClass currency fractionTokenName, totalFractions = fractions}
-      
+
       --build the constraints and submit the transaction
       validator = fractionValidatorScript nftAsset
-      lookups = Constraints.mintingPolicy mintingScript  <> 
-                Constraints.otherScript validator              
-      tx      = Constraints.mustMintValue tokensToMint <> 
+      lookups = Constraints.mintingPolicy mintingScript  <>
+                Constraints.otherScript validator
+      tx      = Constraints.mustMintValue tokensToMint <>
                 Constraints.mustPayToOtherScript (fractionNftValidatorHash nftAsset) datum valueToScript <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ txId ledgerTx
-    Contract.logInfo @String $ printf "forged %s" (show fractions)    
+    Contract.logInfo @String $ printf "forged %s" (show fractions)
 
 returnNFT :: AssetClass -> Contract w FracNFTSchema Text ()
 returnNFT nftAsset = do
