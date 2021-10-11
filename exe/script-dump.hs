@@ -43,15 +43,20 @@ main = do
     do 
       let       
         [nftSymbol, nftTokenName', fractionTokenName', numberOfFractions'] = args
+        validatorname = "validator.plutus"
+        mintingname = "minting.plutus"
+        scriptnum = 42
         nftCurrencySymbol = fromString nftSymbol
         nftTokenName = fromString nftTokenName' 
         fractionTokenName = fromString fractionTokenName'
         numberOfFractions = read numberOfFractions'
-        validatorname = "validator.plutus"
-        mintingname = "minting.plutus"
-        scriptnum = 42
+        
         nft = AssetClass (nftCurrencySymbol, nftTokenName)
+        
         fractionToken = Plutus.TokenName fractionTokenName
+        fractionTokenCurrId = curSymbol nft numberOfFractions fractionToken
+        fractionTokenClass = AssetClass (fractionTokenCurrId, fractionToken)
+
         appliedValidatorScript =fractionValidatorScript nft
 
         validatorAsCbor = serialise appliedValidatorScript
@@ -64,7 +69,8 @@ main = do
         mintingScriptShortBs = SBS.toShort . LB.toStrict $ mintingAsCbor
         mintingScript = PlutusScriptSerialised mintingScriptShortBs
 
-        datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions}
+        
+        datum =FractionNFTDatum{ tokensClass= fractionTokenClass, totalFractions = numberOfFractions}
         dHash = datumHash $ Datum $ toBuiltinData datum
         datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum
         encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode) 
@@ -72,15 +78,15 @@ main = do
       putStrLn $ "Writing output to: " ++ validatorname
       writePlutusScript scriptnum validatorname validatorScript validatorShortBs
 
-      putStrLn $ "validator hash " ++ (show $ fractionNftValidatorHash nft)
+      writeFile "validator-hash.txt" (show $ fractionNftValidatorHash nft)
 
       putStrLn $ "Writing output to: " ++ mintingname
       writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs      
 
-      putStrLn $ "currency id " ++ (show $ curSymbol nft numberOfFractions fractionToken)        
+      writeFile "currency-id.txt" (show $ curSymbol nft numberOfFractions fractionToken)        
 
-      putStrLn $ "encoded datum: " ++ show encoded
-      putStrLn $ "datum hash: " ++ show dHash
+      LB.writeFile "datum.json" encoded
+      writeFile "datum-hash.txt" $ show dHash
 
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
@@ -99,5 +105,3 @@ writePlutusScript scriptnum filename scriptSerial scriptSBS =
   case result of
     Left err -> print $ displayError err
     Right () -> return ()
-
-

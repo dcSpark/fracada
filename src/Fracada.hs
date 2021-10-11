@@ -47,7 +47,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTDatum [('FractionNFTDatum,0)]
 -- | Datum and redeemer parameter types for fractioning script
 data Fractioning
 instance Scripts.ValidatorTypes Fractioning where
-    type instance RedeemerType Fractioning = ()
+    type instance RedeemerType Fractioning = BuiltinData
     type instance DatumType Fractioning = FractionNFTDatum
 
 {-# INLINABLE datumToData #-}
@@ -55,8 +55,8 @@ datumToData :: (FromData a) => Datum -> Maybe a
 datumToData datum = fromBuiltinData (getDatum datum)
 
 {-# INLINABLE fractionNftValidator #-}
-fractionNftValidator :: AssetClass -> FractionNFTDatum -> () -> ScriptContext -> Bool
-fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx =
+fractionNftValidator :: AssetClass -> FractionNFTDatum -> BuiltinData -> ScriptContext -> Bool
+fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx = 
   let
       txInfo = scriptContextTxInfo ctx
         
@@ -78,7 +78,7 @@ fractionNftValidatorInstance asset = Scripts.mkTypedValidator @Fractioning
     `PlutusTx.applyCode`
     PlutusTx.liftCode asset)
     $$(PlutusTx.compile [|| wrap ||]) where
-        wrap = Scripts.wrapValidator @FractionNFTDatum @()
+        wrap = Scripts.wrapValidator @FractionNFTDatum @BuiltinData
 
 fractionNftValidatorHash :: AssetClass -> ValidatorHash
 fractionNftValidatorHash = Scripts.validatorHash . fractionNftValidatorInstance
@@ -93,7 +93,6 @@ fractionNftValidatorAddress = Ledger.scriptAddress . fractionValidatorScript
 {-# INLINABLE mintFractionTokens #-}
 mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> BuiltinData -> ScriptContext -> Bool
 mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _ ctx =
-
   let
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
@@ -107,14 +106,17 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
       in
         traceIfFalse "Asset not paid" assetIsPaid           &&
         traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
-    else
+    else if mintedAmount < 0 then 
       let
         -- extract signer of this transaction, assume is only one
         [sig] = txInfoSignatories info 
-        assetIsReturned = assetClassValueOf (Validation.valuePaidTo info sig ) asset == 1  
+        paidToSigner = Validation.valuePaidTo info sig 
+        assetIsReturned = assetClassValueOf paidToSigner asset == 1  
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
         traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
+    else 
+      False
 
 
 
