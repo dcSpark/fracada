@@ -206,7 +206,7 @@ returnNFT nftAsset = do
     -- assuming that all the fraction tokens are in the owner's `ownPubkey` address. For tracing it is good enough,
     -- though for real-use-cases it is more nuanced, as the owner can have them on different
     -- UTxOs.
-    futxos <- utxosAt (Ledger.pubKeyAddress pk)
+    fracTokenUtxos <- utxosAt (Ledger.pubKeyAddress pk)
     FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
     let
       -- declare the fractional tokens to burn
@@ -219,7 +219,7 @@ returnNFT nftAsset = do
       lookups = Constraints.mintingPolicy (mintFractionTokensPolicy nftAsset totalFractions fractionTokenName)  <>
                 Constraints.otherScript validator <>
                 Constraints.unspentOutputs utxos' <>
-                Constraints.unspentOutputs futxos <>
+                Constraints.unspentOutputs fracTokenUtxos <>
                 Constraints.ownPubKeyHash (pubKeyHash pk)
 
       tx      = Constraints.mustMintValue tokensToBurn <>
