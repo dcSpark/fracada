@@ -60,15 +60,13 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ct
   let
       txInfo = scriptContextTxInfo ctx
         
-      -- extract signer of this transaction, assume is only one
-      [sig] = txInfoSignatories txInfo 
-
-      nftIsPaidToOwner = assetClassValueOf (Validation.valuePaidTo txInfo sig ) nftAsset == 1
+      -- make sure the asset is spent
+      assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset >= 1  
 
       forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
       tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0 
   in
-      traceIfFalse "NFT not paid to owner" nftIsPaidToOwner &&
+      traceIfFalse "NFT not spent" assetIsReturned &&
       traceIfFalse "Tokens not burn" tokensBurnt
 
 
@@ -108,10 +106,8 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
         traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
     else if mintedAmount < 0 then 
       let
-        -- extract signer of this transaction, assume is only one
-        [sig] = txInfoSignatories info 
-        paidToSigner = Validation.valuePaidTo info sig 
-        assetIsReturned = assetClassValueOf paidToSigner asset == 1  
+        -- make sure the asset is spent
+        assetIsReturned = assetClassValueOf (valueProduced info) asset >= 1  
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
         traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
