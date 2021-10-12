@@ -1,0 +1,4 @@
+ignore-project: False
+flags: -external-libsodium-vrf
+executable-dynamic: True
+tests: True
