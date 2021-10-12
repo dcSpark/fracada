@@ -1,0 +1,1 @@
+(import ../plutus/shell.nix)
