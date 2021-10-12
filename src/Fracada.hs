@@ -54,21 +54,23 @@ instance Scripts.ValidatorTypes Fractioning where
 datumToData :: (FromData a) => Datum -> Maybe a
 datumToData datum = fromBuiltinData (getDatum datum)
 
+-- The validator runs only when unlocking the NFT from the validator address
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: AssetClass -> FractionNFTDatum -> () -> ScriptContext -> Bool
 fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx =
   let
       txInfo = scriptContextTxInfo ctx
         
-      -- extract signer of this transaction, assume is only one
-      [sig] = txInfoSignatories txInfo 
+      -- the NFT must not be locked by anymore in any TxOut i.e., it can be sent to any other
+      -- PubKey, Script or SimpleAddress.
+      unlocked = assetClassValueOf (Validation.valueLockedBy txInfo $ ownHash ctx) nftAsset == 0
 
-      nftIsPaidToOwner = assetClassValueOf (Validation.valuePaidTo txInfo sig ) nftAsset == 1
-
+      -- The forgetToken in TxInfoMint must be exactly the same as in the datum.
+      -- Though, it is not necessary as it will be checked in the minting script.
       forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
       tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0 
   in
-      traceIfFalse "NFT not paid to owner" nftIsPaidToOwner &&
+      traceIfFalse "NFT is still in validator address" unlocked &&
       traceIfFalse "Tokens not burn" tokensBurnt
 
 
