@@ -1,5 +1,5 @@
 
-{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE OverloadedStrings #-}
 import           Prelude
 import           System.Environment
 
@@ -8,26 +8,26 @@ import           Cardano.Api.Shelley
 import           Codec.Serialise
 
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
-import qualified Plutus.V1.Ledger.Api as Plutus
+import qualified Plutus.V1.Ledger.Api       as Plutus
 
-import qualified Data.ByteString.Short as SBS
-import qualified Data.ByteString.Lazy as LB
+import qualified Data.ByteString.Lazy       as LB
+import qualified Data.ByteString.Short      as SBS
 
 import           Ledger                     (datumHash)
 
 
 import           Fracada
 
-import          Plutus.V1.Ledger.Value
-import           Plutus.V1.Ledger.Api
-import Data.String                         (IsString (..))
 import           Data.Aeson
+import           Data.String                (IsString (..))
+import           Plutus.V1.Ledger.Api
+import           Plutus.V1.Ledger.Value
 
 -- test data
--- nftCurrencySymbol = fromString  "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7" 
--- nftTokenName =  "" 
--- fractionTokenName =  "FracadaToken" 
--- numberOfFractions = 10 :: Integer 
+-- nftCurrencySymbol = fromString  "6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7"
+-- nftTokenName =  ""
+-- fractionTokenName =  "FracadaToken"
+-- numberOfFractions = 10 :: Integer
 -- nft = AssetClass (nftCurrencySymbol, nftTokenName)
 -- fractionToken = Plutus.TokenName fractionTokenName
 
@@ -39,12 +39,12 @@ main = do
     do
       putStrLn $ "Usage:"
       putStrLn $ "script-dump <NFT currency symbol> <NFT token name> <Fraction token name> <number of fractions>"
-  else 
-    do 
-      let       
+  else
+    do
+      let
         [nftSymbol, nftTokenName', fractionTokenName', numberOfFractions'] = args
         nftCurrencySymbol = fromString nftSymbol
-        nftTokenName = fromString nftTokenName' 
+        nftTokenName = fromString nftTokenName'
         fractionTokenName = fromString fractionTokenName'
         numberOfFractions = read numberOfFractions'
         validatorname = "validator.plutus"
@@ -67,7 +67,7 @@ main = do
         datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions}
         dHash = datumHash $ Datum $ toBuiltinData datum
         datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum
-        encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode) 
+        encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode)
 
       putStrLn $ "Writing output to: " ++ validatorname
       writePlutusScript scriptnum validatorname validatorScript validatorShortBs
@@ -75,9 +75,9 @@ main = do
       putStrLn $ "validator hash " ++ (show $ fractionNftValidatorHash nft)
 
       putStrLn $ "Writing output to: " ++ mintingname
-      writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs      
+      writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
 
-      putStrLn $ "currency id " ++ (show $ curSymbol nft numberOfFractions fractionToken)        
+      putStrLn $ "currency id " ++ (show $ curSymbol nft numberOfFractions fractionToken)
 
       putStrLn $ "encoded datum: " ++ show encoded
       putStrLn $ "datum hash: " ++ show dHash
@@ -92,7 +92,7 @@ writePlutusScript scriptnum filename scriptSerial scriptSBS =
               (logout, e) = Plutus.evaluateScriptCounting Plutus.Verbose m scriptSBS [pData]
           in do print ("Log output" :: String) >> print logout
                 case e of
-                  Left evalErr -> print ("Eval Error" :: String) >> print evalErr
+                  Left evalErr   -> print ("Eval Error" :: String) >> print evalErr
                   Right exbudget -> print ("Ex Budget" :: String) >> print exbudget
         Nothing -> error "defaultCostModelParams failed"
   result <- writeFileTextEnvelope filename Nothing scriptSerial

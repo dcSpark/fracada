@@ -7,7 +7,7 @@ module Main(
 import qualified Spec.Fracada
 
 import           Test.Tasty
-import           Test.Tasty.Hedgehog       (HedgehogTestLimit (..))
+import           Test.Tasty.Hedgehog (HedgehogTestLimit (..))
 
 main :: IO ()
 main = defaultMain useCaseTests

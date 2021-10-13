@@ -52,8 +52,8 @@ library
 
 executable           Emulator
   main-is:           Emulator.hs
-  hs-source-dirs:    exe, src
-  other-modules:     Fracada
+  hs-source-dirs:    exe, src, test
+  other-modules:     Fracada, Spec.Fracada
   build-depends:     base
                     , aeson
                     , cardano-api

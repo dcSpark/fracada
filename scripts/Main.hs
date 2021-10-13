@@ -5,14 +5,13 @@
 
 module Main(main, ExportTx(..)) where
 
-import qualified Cardano.Api                    as C
-import           Data.Default                   (Default (..))
-import           Data.Monoid                    (Sum (..))
-import           Ledger.Index                   (ValidatorMode (..))
+import qualified Cardano.Api            as C
+import           Data.Monoid            (Sum (..))
+import           Ledger.Index           (ValidatorMode (..))
 import           Options.Applicative
-import           Plutus.Contract.Wallet         (ExportTx (..))
-import           Plutus.Trace                   (Command (..), ScriptsConfig (..), showStats, writeScriptsTo)
-import qualified Spec.Fracada                   as Fracada
+import           Plutus.Contract.Wallet (ExportTx (..))
+import           Plutus.Trace           (Command (..), ScriptsConfig (..), showStats, writeScriptsTo)
+import qualified Spec.Fracada           as Fracada
 
 writeWhat :: Command -> String
 writeWhat (Scripts FullyAppliedValidators) = "scripts (fully applied)"
@@ -64,8 +63,8 @@ writeScripts :: ScriptsConfig -> IO ()
 writeScripts config = do
     putStrLn $ "Writing " <> writeWhat (scCommand config) <> " to: " <> scPath config
     (Sum size, exBudget) <- foldMap (uncurry3 (writeScriptsTo config))
-        [  ("fracada-success", Fracada.successFullFractionalizationTrace, def)
-          --, ("fracada-unsuccess", Fracada.unSuccessfulFractionalization, def)
+        [ ("fracada-success", Fracada.successFulFractionalizationTrace, Fracada.fracadaEmulatorConfig)
+        , ("fracada-failure", Fracada.unSuccessFulFractionalizationTrace, Fracada.fracadaEmulatorConfig)
         ]
     if size > 0 then
         putStrLn $ "Total " <> showStats size exBudget
@@ -74,4 +73,3 @@ writeScripts config = do
 -- | `uncurry3` converts a curried function to a function on triples.
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 f (a, b, c) = f a b c
-

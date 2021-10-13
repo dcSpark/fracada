@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveAnyClass      #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,36 +10,34 @@
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE LambdaCase          #-}
 
 module Fracada where
 
-import           Prelude                ( String, show, Show)
-import           Control.Monad          hiding (fmap)
-import qualified Data.Map               as Map
-import           Data.Text              (Text)
-import           Data.Void              (Void)
-import           Plutus.Contract        as Contract
+import           Control.Monad        hiding (fmap)
+import           Data.Aeson           (FromJSON, ToJSON)
+import qualified Data.Map             as Map
+import           Data.Text            (Text)
+import           Data.Void            (Void)
+import           GHC.Generics         (Generic)
+import           Ledger               hiding (singleton)
+import           Ledger.Constraints   as Constraints
+import qualified Ledger.Contexts      as Validation
+import qualified Ledger.Typed.Scripts as Scripts
+import           Ledger.Value         as Value
+import           Playground.Contract  (NonEmpty (..), ToSchema, ensureKnownCurrencies, printJson, printSchemas, stage)
+import           Playground.TH        (ensureKnownCurrencies, mkKnownCurrencies, mkSchemaDefinitions)
+import           Playground.Types     (KnownCurrency (..))
+import           Plutus.Contract      as Contract
 import qualified PlutusTx
 import           PlutusTx.IsData
-import           PlutusTx.Prelude       hiding (Semigroup(..), unless)
-import           Ledger                 hiding (singleton)
-import           Ledger.Constraints     as Constraints
-import qualified Ledger.Typed.Scripts   as Scripts
-import qualified Ledger.Contexts                   as Validation
-import           Ledger.Value           as Value
-import           Playground.Contract    (printJson, printSchemas, ensureKnownCurrencies, stage, ToSchema, NonEmpty(..) )
-import           Playground.TH          (mkKnownCurrencies, mkSchemaDefinitions, ensureKnownCurrencies)
-import           Playground.Types       (KnownCurrency (..))
-import           Prelude                (Semigroup (..))
-import           Text.Printf            (printf)
-import           GHC.Generics         (Generic)
-import           Data.Aeson           (ToJSON, FromJSON)
+import           PlutusTx.Prelude     hiding (Semigroup (..), unless)
+import           Prelude              (Semigroup (..), Show, String, show)
+import           Text.Printf          (printf)
 
 
 data FractionNFTDatum = FractionNFTDatum {
-      tokensClass     :: AssetClass,
-      totalFractions  :: Integer
+      tokensClass    :: AssetClass,
+      totalFractions :: Integer
     } deriving (Generic, Show)
 
 PlutusTx.makeLift ''FractionNFTDatum
@@ -60,7 +59,7 @@ fractionNftValidator :: AssetClass -> FractionNFTDatum -> () -> ScriptContext ->
 fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx =
   let
       txInfo = scriptContextTxInfo ctx
-        
+
       -- the NFT must not be locked by anymore in any TxOut i.e., it can be sent to any other
       -- PubKey, Script or SimpleAddress.
       unlocked = assetClassValueOf (Validation.valueLockedBy txInfo $ ownHash ctx) nftAsset == 0
@@ -68,7 +67,7 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ct
       -- The forgetToken in TxInfoMint must be exactly the same as in the datum.
       -- Though, it is not necessary as it will be checked in the minting script.
       forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
-      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0 
+      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
   in
       traceIfFalse "NFT is still in validator address" unlocked &&
       traceIfFalse "Tokens not burn" tokensBurnt
@@ -99,21 +98,21 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
   let
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
-        [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt 
-        _                                                           -> 0
+        [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt
+        _                                                                                                        -> 0
   in
     if mintedAmount > 0 then
-      let 
-        lockedByNFTfractionScript = valueLockedBy info fractionNFTScript 
-        assetIsPaid = assetClassValueOf lockedByNFTfractionScript asset == 1 
+      let
+        lockedByNFTfractionScript = valueLockedBy info fractionNFTScript
+        assetIsPaid = assetClassValueOf lockedByNFTfractionScript asset == 1
       in
         traceIfFalse "Asset not paid" assetIsPaid           &&
         traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
     else
       let
         -- extract signer of this transaction, assume is only one
-        [sig] = txInfoSignatories info 
-        assetIsReturned = assetClassValueOf (Validation.valuePaidTo info sig ) asset == 1  
+        [sig] = txInfoSignatories info
+        assetIsReturned = assetClassValueOf (Validation.valuePaidTo info sig ) asset == 1
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
         traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
@@ -136,9 +135,9 @@ curSymbol ::  AssetClass -> Integer -> TokenName -> CurrencySymbol
 curSymbol asset numberOfFractions fractionTokenName = scriptCurrencySymbol $ mintFractionTokensPolicy asset numberOfFractions fractionTokenName
 
 data ToFraction = ToFraction
-    { nftAsset :: !AssetClass
-    , fractions   :: !Integer
-    , fractionTokenName    :: !TokenName
+    { nftAsset          :: !AssetClass
+    , fractions         :: !Integer
+    , fractionTokenName :: !TokenName
     } deriving (Generic, ToJSON, FromJSON, ToSchema)
 
 type FracNFTSchema = Endpoint "1-fractionNFT" ToFraction
@@ -172,25 +171,25 @@ fractionNFT ToFraction {nftAsset, fractions, fractionTokenName} = do
       --find the minting script instance
       mintingScript = mintFractionTokensPolicy nftAsset fractions fractionTokenName
 
-      -- define the value to mint (amount of tokens) and be paid to signer  
-      currency = scriptCurrencySymbol mintingScript  
+      -- define the value to mint (amount of tokens) and be paid to signer
+      currency = scriptCurrencySymbol mintingScript
       tokensToMint =  Value.singleton currency fractionTokenName fractions
       payBackTokens = mustPayToPubKey (pubKeyHash pk) tokensToMint
-      -- value of NFT 
-      valueToScript = assetClassValue nftAsset 1 
+      -- value of NFT
+      valueToScript = assetClassValue nftAsset 1
       -- keep the minted amount and asset class in the datum
       datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= assetClass currency fractionTokenName, totalFractions = fractions}
-      
+
       --build the constraints and submit the transaction
       validator = fractionValidatorScript nftAsset
-      lookups = Constraints.mintingPolicy mintingScript  <> 
-                Constraints.otherScript validator              
-      tx      = Constraints.mustMintValue tokensToMint <> 
+      lookups = Constraints.mintingPolicy mintingScript  <>
+                Constraints.otherScript validator
+      tx      = Constraints.mustMintValue tokensToMint <>
                 Constraints.mustPayToOtherScript (fractionNftValidatorHash nftAsset) datum valueToScript <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ txId ledgerTx
-    Contract.logInfo @String $ printf "forged %s" (show fractions)    
+    Contract.logInfo @String $ printf "forged %s" (show fractions)
 
 returnNFT :: AssetClass -> Contract w FracNFTSchema Text ()
 returnNFT nftAsset = do
@@ -211,7 +210,7 @@ returnNFT nftAsset = do
     futxos <- utxosAt (Ledger.pubKeyAddress pk)
     FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
     let
-      tokensAsset = AssetClass (tokensCurrency, fractionTokenName) 
+      tokensAsset = AssetClass (tokensCurrency, fractionTokenName)
       fracTokenUtxos = Map.filter (\v -> assetClassValueOf (_ciTxOutValue v) tokensAsset > 0  ) futxos
 
       -- declare the fractional tokens to burn
