@@ -104,18 +104,19 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
     if mintedAmount > 0 then
       let
         lockedByNFTfractionScript = valueLockedBy info fractionNFTScript
-        assetIsPaid = assetClassValueOf lockedByNFTfractionScript asset == 1
+        assetIsLocked = assetClassValueOf lockedByNFTfractionScript asset == 1
       in
-        traceIfFalse "Asset not paid" assetIsPaid           &&
+        traceIfFalse "Asset not locked" assetIsLocked           &&
         traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
-    else
+    else if mintedAmount < 0 then
       let
-        -- extract signer of this transaction, assume is only one
-        [sig] = txInfoSignatories info
-        assetIsReturned = assetClassValueOf (Validation.valuePaidTo info sig ) asset == 1
+        -- make sure the asset is spent
+        assetIsReturned = assetClassValueOf (valueProduced info) asset > 0
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
         traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
+    else
+      False
 
 
 
