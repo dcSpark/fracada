@@ -60,16 +60,10 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ct
   let
       txInfo = scriptContextTxInfo ctx
 
-      -- the NFT must not be locked by anymore in any TxOut i.e., it can be sent to any other
-      -- PubKey, Script or SimpleAddress.
-      unlocked = assetClassValueOf (Validation.valueLockedBy txInfo $ ownHash ctx) nftAsset == 0
-
-      -- The forgetToken in TxInfoMint must be exactly the same as in the datum.
-      -- Though, it is not necessary as it will be checked in the minting script.
-      forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
-      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
+      -- make sure the asset is spent
+      assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
   in
-      traceIfFalse "NFT is still in validator address" unlocked &&
+      traceIfFalse "NFT not returned" assetIsReturned &&
       traceIfFalse "Tokens not burn" tokensBurnt
 
 
