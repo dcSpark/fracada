@@ -77,7 +77,7 @@ main = do
       putStrLn $ "Writing output to: " ++ mintingname
       writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
 
-      writeFile "currency-id.txt" (show $ curSymbol nft numberOfFractions fractionToken)         
+      writeFile "currency-id.txt" (show $ curSymbol nft numberOfFractions fractionToken)        
 
       putStrLn $ "encoded datum: " ++ show encoded
       putStrLn $ "datum hash: " ++ show dHash

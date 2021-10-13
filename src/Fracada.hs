@@ -62,6 +62,9 @@ fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ct
 
       -- make sure the asset is spent
       assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
+
+      forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
+      tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
   in
       traceIfFalse "NFT not returned" assetIsReturned &&
       traceIfFalse "Tokens not burn" tokensBurnt
@@ -93,7 +96,7 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
         [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt
-        _                                                                                                        -> 0
+        _                                                           -> 0
   in
     if mintedAmount > 0 then
       let
