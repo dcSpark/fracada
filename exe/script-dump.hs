@@ -37,51 +37,58 @@ main = do
   let nargs = length args
   if nargs /= 4 then
     do
-      putStrLn $ "Usage:"
-      putStrLn $ "script-dump <NFT currency symbol> <NFT token name> <Fraction token name> <number of fractions>"
+      putStrLn "Usage:"
+      putStrLn "script-dump <NFT currency symbol> <NFT token name> <Fraction token name> <number of fractions>"
   else
     do
       let
-        [nftSymbol, nftTokenName', fractionTokenName', numberOfFractions'] = args
+        [nftSymbol, nftTokenName, fractionTokenName, numberOfFractions] = args
+
+        numberOfFractions' = read numberOfFractions
+
         nftCurrencySymbol = fromString nftSymbol
-        nftTokenName = fromString nftTokenName'
-        fractionTokenName = fromString fractionTokenName'
-        numberOfFractions = read numberOfFractions'
+        nftTokenName' = fromString nftTokenName
+        nft = AssetClass (nftCurrencySymbol, nftTokenName')
+
+        fractionCurrencySymbol = curSymbol nft numberOfFractions' fractionTokenName'
+        fractionTokenName' = fromString fractionTokenName
+        token = AssetClass (fractionCurrencySymbol, fractionTokenName')
+
         validatorname = "validator.plutus"
         mintingname = "minting.plutus"
+
         scriptnum = 42
-        nft = AssetClass (nftCurrencySymbol, nftTokenName)
-        fractionToken = Plutus.TokenName fractionTokenName
-        appliedValidatorScript =fractionValidatorScript nft
+
+        -- fractionToken = Plutus.TokenName fractionTokenName'
+        appliedValidatorScript = fractionValidatorScript nft
 
         validatorAsCbor = serialise appliedValidatorScript
         validatorShortBs = SBS.toShort . LB.toStrict $ validatorAsCbor
         validatorScript = PlutusScriptSerialised validatorShortBs
-        appliedMintingPolicy = mintFractionTokensPolicy nft numberOfFractions fractionToken
+        appliedMintingPolicy = mintFractionTokensPolicy nft numberOfFractions' fractionTokenName'
 
         mintingAsValidator = Plutus.Validator $ Plutus.unMintingPolicyScript appliedMintingPolicy
         mintingAsCbor = serialise mintingAsValidator
         mintingScriptShortBs = SBS.toShort . LB.toStrict $ mintingAsCbor
         mintingScript = PlutusScriptSerialised mintingScriptShortBs
 
-        datum =FractionNFTDatum{ tokensClass= nft, totalFractions = numberOfFractions}
+        datum =FractionNFTDatum{ tokensClass = token, totalFractions = numberOfFractions'}
         dHash = datumHash $ Datum $ toBuiltinData datum
         datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum
         encoded = Data.Aeson.encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData datumToEncode)
 
-      putStrLn $ "Writing output to: " ++ validatorname
+      putStrLn $ "Writing Validator script to: " ++ validatorname
       writePlutusScript scriptnum validatorname validatorScript validatorShortBs
 
-      putStrLn $ "validator hash " ++ (show $ fractionNftValidatorHash nft)
+      putStrLn $ "validator hash " ++ show (fractionNftValidatorHash nft)
 
-      putStrLn $ "Writing output to: " ++ mintingname
+      putStrLn $ "Writing Minting script to: " ++ mintingname
       writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
 
-      writeFile "currency-id.txt" (show $ curSymbol nft numberOfFractions fractionToken)        
+      putStrLn $ "minting hash " ++  show fractionCurrencySymbol
 
       putStrLn $ "encoded datum: " ++ show encoded
       putStrLn $ "datum hash: " ++ show dHash
-
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =
