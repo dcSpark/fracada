@@ -34,6 +34,7 @@ import           Prelude                (Semigroup (..))
 import           Text.Printf            (printf)
 import           GHC.Generics         (Generic)
 import           Data.Aeson           (ToJSON, FromJSON)
+import           Playground.Contract
 
 
 data FractionNFTDatum = FractionNFTDatum {
