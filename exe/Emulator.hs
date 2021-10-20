@@ -14,5 +14,5 @@ import           Spec.Fracada
 
 main :: IO ()
 main = do
-    runEmulatorTraceIO' def fracadaEmulatorConfig successFulFractionalizationTrace
+    --runEmulatorTraceIO' def fracadaEmulatorConfig successFulFractionalizationTrace
     runEmulatorTraceIO' def fracadaEmulatorConfig unSuccessFulFractionalizationTrace

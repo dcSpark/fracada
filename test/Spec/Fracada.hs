@@ -23,6 +23,7 @@ import           Ledger.Value                   as Value
 import           Plutus.Contract.Test
 import           Plutus.Trace.Emulator          as Trace
 import           Test.Tasty
+import           Test.Tasty.HUnit               as HUnit
 
 import           Fracada
 
@@ -65,20 +66,26 @@ options = set emulatorConfig fracadaEmulatorConfig (set minLogLevel Debug defaul
 
 useCaseTests :: TestTree
 useCaseTests =
-    let contract = Fracada.endpoints in
+    let reasonableSize = 9000
+        contract = Fracada.endpoints in
         testGroup "fracada"
         [ checkPredicate "Expose '1-fractionNFT' and '2-returnNFT' endpoints"
-        (endpointAvailable @"1-fractionNFT" contract (walletInstanceTag w1)
-        .&&. endpointAvailable @"2-returnNFT" contract (walletInstanceTag w2)
-        ) $ void (activateContractWallet w1 contract)
+          (endpointAvailable @"1-fractionNFT" contract (walletInstanceTag w1)
+          .&&. endpointAvailable @"2-returnNFT" contract (walletInstanceTag w2)
+          ) $ void (activateContractWallet w1 contract)
 
         , checkPredicateOptions options "Can lock NFT, mint fractional tokens and unlock to any address"
-        assertNoFailedTransactions
-        successFulFractionalizationTrace
+          assertNoFailedTransactions
+          successFulFractionalizationTrace
 
         , checkPredicateOptions options "Can lock NFT and mint fractional tokens, but fail to unlock"
-        assertNoFailedTransactions
-        unSuccessFulFractionalizationTrace
+          (assertFailedTransaction (\_ err _ -> case err of {Ledger.ScriptFailure (Ledger.EvaluationError ["not enough signatures"] _) -> True; _ -> False  }))
+          unSuccessFulFractionalizationTrace
+
+        , HUnit.testCase ("The script size (" ++ (show reasonableSize) ++ ") is reasonable.")
+          ( reasonable ( Fracada.fractionValidatorScript fracadaNft )
+            reasonableSize
+          )
         ]
 
 successFulFractionalizationTrace :: EmulatorTrace ()
