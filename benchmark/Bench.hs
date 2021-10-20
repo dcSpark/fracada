@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
 
 module Main where
 
-import           PlutusBenchmark.Common                   (Term, getConfig, getDataDir, unDeBruijnAnonTerm)
-import           PlutusBenchmark.NaturalSort
+import           Fracada.Benchmark.Common                 (Term, getConfig, getDataDir, unDeBruijnAnonTerm)
+import           Fracada.Benchmark.NaturalSort
 
 import qualified PlutusCore                               as PLC
 

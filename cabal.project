@@ -15,6 +15,7 @@ source-repository-package
   subdir:
     freer-extras
     playground-common
+    plutus-benchmark
     plutus-chain-index
     plutus-core
     plutus-contract
