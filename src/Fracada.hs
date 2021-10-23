@@ -48,7 +48,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTDatum [('FractionNFTDatum,0)]
 -- | Datum and redeemer parameter types for fractioning script
 data Fractioning
 instance Scripts.ValidatorTypes Fractioning where
-    type instance RedeemerType Fractioning = ()
+    type instance RedeemerType Fractioning = BuiltinData
     type instance DatumType Fractioning = FractionNFTDatum
 
 {-# INLINABLE datumToData #-}
@@ -57,7 +57,7 @@ datumToData datum = fromBuiltinData (getDatum datum)
 
 -- The validator runs only when unlocking the NFT from the validator address
 {-# INLINABLE fractionNftValidator #-}
-fractionNftValidator :: AssetClass -> FractionNFTDatum -> () -> ScriptContext -> Bool
+fractionNftValidator :: AssetClass -> FractionNFTDatum -> BuiltinData -> ScriptContext -> Bool
 fractionNftValidator nftAsset FractionNFTDatum{tokensClass, totalFractions} _ ctx =
   let
       txInfo = scriptContextTxInfo ctx
@@ -78,7 +78,7 @@ fractionNftValidatorInstance asset = Scripts.mkTypedValidator @Fractioning
     `PlutusTx.applyCode`
     PlutusTx.liftCode asset)
     $$(PlutusTx.compile [|| wrap ||]) where
-        wrap = Scripts.wrapValidator @FractionNFTDatum @()
+        wrap = Scripts.wrapValidator @FractionNFTDatum @BuiltinData
 
 fractionNftValidatorHash :: AssetClass -> ValidatorHash
 fractionNftValidatorHash = Scripts.validatorHash . fractionNftValidatorInstance
@@ -93,7 +93,6 @@ fractionNftValidatorAddress = Ledger.scriptAddress . fractionValidatorScript
 {-# INLINABLE mintFractionTokens #-}
 mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> BuiltinData -> ScriptContext -> Bool
 mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _ ctx =
-
   let
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
