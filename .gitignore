@@ -26,3 +26,10 @@ cabal.project.local~*
 *.txbody
 **/tmp/
 .vscode/*
+
+# Added ignores for benchmark
+flat-report.html
+flat-sizes.txt
+report.html
+report.json
+benchmark/data/
